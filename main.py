@@ -28,6 +28,7 @@ class BetterChat_Plugin(Star):
 
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def on_all_message(self, event: AstrMessageEvent):
+        yield event.plain_result(f"收到消息: {event.message_str}")
         # logger.info(f"event: {event}, request: {req}")
         hole_msgs = ""
         try:
