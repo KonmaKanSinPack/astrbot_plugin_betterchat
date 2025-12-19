@@ -8,7 +8,7 @@ from astrbot.core.utils.session_waiter import (
     SessionController,
 )
 import asyncio
-
+from astrbot.api.event import MessageChain
 @register("astrbot_plugin_betterchat", "兔子", "更好的聊天。", "v0.1.0")
 class BetterChat_Plugin(Star):
     def __init__(self, context: Context):
@@ -35,6 +35,7 @@ class BetterChat_Plugin(Star):
     @filter.event_message_type(filter.EventMessageType.PRIVATE_MESSAGE)
     async def on_all_message(self, event: AstrMessageEvent):
         if not self.is_listening:
+            umo = event.unified_msg_origin
             self.is_listening = True
             try:
                 @session_waiter(timeout=4, record_history_chains=False)
@@ -48,7 +49,9 @@ class BetterChat_Plugin(Star):
                 except TimeoutError:
                     logger.info("No more messages received within timeout.")
                     logger.info(f"Collected messages:{self.hole_msgs}")
+                    message_chain = MessageChain().message(self.hole_msgs)
                     self._ready_event.set()
+                    await self.context.send_message(event.unified_msg_origin,message_chain)
                     yield event.plain_result(f"send msg")
                 except Exception as e:
                     yield event.plain_result("发生内部错误，请联系管理员: " + str(e))
