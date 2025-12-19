@@ -67,7 +67,7 @@ class BetterChat_Plugin(Star):
         if self.is_listening:
             logger.info("插件处于监听状态，忽略消息。")
             return
-        logger.info(f"event: {event}, request: {req}")
+        logger.info(f"收到消息: {event.message_str}")
         hole_msgs = ""
         try:
             @session_waiter(timeout=4, record_history_chains=False)
