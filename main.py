@@ -13,8 +13,10 @@ import asyncio
 class BetterChat_Plugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-        self.is_listening = asyncio.Lock()
+        # self.is_listening = asyncio.Lock()
+        self.is_listening = False
         self.hole_msgs = ""
+        self.ready2call = False
 
     async def initialize(self):
         """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
@@ -31,7 +33,9 @@ class BetterChat_Plugin(Star):
 
     @filter.event_message_type(filter.EventMessageType.PRIVATE_MESSAGE)
     async def on_all_message(self, event: AstrMessageEvent):
-        async with self.is_listening:
+        if not self.is_listening:
+            self.is_listening = True
+            self.ready2call = False
             # logger.info(f"收到私聊消息: {event.message_str}")
         
             # yield event.plain_result(f"收到消息: {event.message_str}")
@@ -49,8 +53,9 @@ class BetterChat_Plugin(Star):
                 except TimeoutError:
                     logger.info("No more messages received within timeout.")
                     logger.info(f"Collected messages:\n{self.hole_msgs}")
-                    event.message_str = self.hole_msgs
-                    self.hole_msgs = ""
+                    # event.message_str = self.hole_msgs
+                    # self.hole_msgs = ""
+                    self.ready2call = True
                     yield event.plain_result(f"send msg")
                 except Exception as e:
                     yield event.plain_result("发生内部错误，请联系管理员: " + str(e))
@@ -60,35 +65,15 @@ class BetterChat_Plugin(Star):
             except Exception as e:
                 yield event.plain_result("发生错误，请联系管理员: " + str(e))
 
-    # @filter.on_llm_request()
-    # async def my_hook(self, event: AstrMessageEvent, req: ProviderRequest):
-    #     if self.is_listening:
-    #         logger.info("插件处于监听状态，忽略消息。")
-    #         return
-    #     logger.info(f"收到消息: {event.message_str}")
-    #     try:
-    #         @session_waiter(timeout=4, record_history_chains=False)
-    #         async def wait_for_response(controller: SessionController, event: AstrMessageEvent):
-    #             cur_msg = event.message_str
-    #             hole_msgs += f"{cur_msg}\n"
-                
-    #             controller.keep(timeout=4, reset_timeout=True)
-
-    #         try:
-    #             await wait_for_response(event)
-    #         except TimeoutError:
-    #             logger.info("No more messages received within timeout.")
-    #             logger.info(f"Collected messages:\n{self.hole_msgs}")
-    #             req.prompt = f"{req.prompt}\n[{self.hole_msgs}]"
-    #             self.hole_msgs = ""
-    #             yield event.plain_result(f"send msg")
-    #         except Exception as e:
-    #             yield event.plain_result("发生内部错误，请联系管理员: " + str(e))
-    #         finally:
-    #             self.is_listening = False
-    #             event.stop_event()
-    #     except Exception as e:
-    #         yield event.plain_result("发生错误，请联系管理员: " + str(e))
+    @filter.on_llm_request()
+    async def my_hook(self, event: AstrMessageEvent, req: ProviderRequest):
+        if self.is_listening:
+            logger.info("插件处于监听状态，忽略消息。")
+            return
+        if self.ready2call:
+            req.prompt = f"{req.prompt}\n[{self.hole_msgs}]"
+            self.hole_msgs = ""
+            self.ready2call = False
 
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
