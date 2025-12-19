@@ -34,50 +34,52 @@ class BetterChat_Plugin(Star):
 
     @filter.event_message_type(filter.EventMessageType.PRIVATE_MESSAGE)
     async def on_all_message(self, event: AstrMessageEvent):
-        if not self.is_listening:
-            umo = event.unified_msg_origin
-            self.is_listening = True
-            try:
-                @session_waiter(timeout=4, record_history_chains=False)
-                async def wait_for_response(controller: SessionController, event: AstrMessageEvent):
-                    cur_msg = event.message_str
-                    self.hole_msgs += f"{cur_msg}\n"
-                    controller.keep(timeout=4, reset_timeout=True)
-
-                try:
-                    await wait_for_response(event)
-                except TimeoutError:
-                    logger.info("No more messages received within timeout.")
-                    logger.info(f"Collected messages:{self.hole_msgs}")
-                    # message_chain = MessageChain().message(self.hole_msgs)
-                    self._ready_event.set()
-                    # await self.context.send_message(event.unified_msg_origin,message_chain)
-                    # yield event.plain_result(f"send msg")
-                except Exception as e:
-                    yield event.plain_result("发生内部错误，请联系管理员: " + str(e))
-                finally:
-                    self.is_listening = False
-                    # event.stop_event()
-            except Exception as e:
-                yield event.plain_result("发生错误，请联系管理员: " + str(e))
-
-    @filter.on_llm_request()
-    async def my_hook(self, event: AstrMessageEvent, req: ProviderRequest):
-        logger.info("进入llm调用钩子。。。")
-        if self.iswaitting:
-            logger.info("llm调用处于等待状态，忽略消息。")
+        if self.is_listening:
+            yield event.plain_result("当前正在监听消息，请稍后再试。")
             return
-        
-        self.iswaitting = True
+        # umo = event.unified_msg_origin
+        self.is_listening = True
         try:
-            logger.info("开始等待。。。")
-            await self._ready_event.wait()
-            logger.info("等待结束，信息为：" + self.hole_msgs)
-            req.prompt = f"{req.prompt}\n[{self.hole_msgs}]"
-            self.hole_msgs = ""
-            self._ready_event.clear()
-        finally:
-            self.iswaitting = False
+            @session_waiter(timeout=4, record_history_chains=False)
+            async def wait_for_response(controller: SessionController, event: AstrMessageEvent):
+                cur_msg = event.message_str
+                self.hole_msgs += f"{cur_msg}\n"
+                controller.keep(timeout=4, reset_timeout=True)
+
+            try:
+                await wait_for_response(event)
+            except TimeoutError:
+                logger.info("No more messages received within timeout.")
+                logger.info(f"Collected messages:{self.hole_msgs}")
+                # message_chain = MessageChain().message(self.hole_msgs)
+                self._ready_event.set()
+                # await self.context.send_message(event.unified_msg_origin,message_chain)
+                # yield event.plain_result(f"send msg")
+            except Exception as e:
+                yield event.plain_result("发生内部错误，请联系管理员: " + str(e))
+            finally:
+                self.is_listening = False
+                event.stop_event()
+        except Exception as e:
+            yield event.plain_result("发生错误，请联系管理员: " + str(e))
+
+    # @filter.on_llm_request()
+    # async def my_hook(self, event: AstrMessageEvent, req: ProviderRequest):
+    #     logger.info("进入llm调用钩子。。。")
+    #     if self.iswaitting:
+    #         logger.info("llm调用处于等待状态，忽略消息。")
+    #         return
+        
+    #     self.iswaitting = True
+    #     try:
+    #         logger.info("开始等待。。。")
+    #         await self._ready_event.wait()
+    #         logger.info("等待结束，信息为：" + self.hole_msgs)
+    #         req.prompt = f"{req.prompt}\n[{self.hole_msgs}]"
+    #         self.hole_msgs = ""
+    #         self._ready_event.clear()
+    #     finally:
+    #         self.iswaitting = False
 
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
