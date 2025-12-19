@@ -34,9 +34,9 @@ class BetterChat_Plugin(Star):
 
     @filter.event_message_type(filter.EventMessageType.PRIVATE_MESSAGE)
     async def on_all_message(self, event: AstrMessageEvent):
-        if self.is_listening:
-            logger.info("当前正在监听消息，请稍后再试。")
-            return
+        # if self.is_listening:
+        #     logger.info("当前正在监听消息，请稍后再试。")
+        #     return
         # umo = event.unified_msg_origin
         self.is_listening = True
         try:
