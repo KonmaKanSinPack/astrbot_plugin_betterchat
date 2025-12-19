@@ -12,6 +12,7 @@ from astrbot.core.utils.session_waiter import (
 class BetterChat_Plugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
+        self.is_listening = False
 
     async def initialize(self):
         """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
@@ -28,6 +29,11 @@ class BetterChat_Plugin(Star):
 
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def on_all_message(self, event: AstrMessageEvent):
+        if self.is_listening:
+            logger.info("插件处于监听状态，忽略消息。")
+            return
+        
+        self.is_listening = True
         yield event.plain_result(f"收到消息: {event.message_str}")
         # logger.info(f"event: {event}, request: {req}")
         hole_msgs = ""
@@ -50,6 +56,7 @@ class BetterChat_Plugin(Star):
             except Exception as e:
                 yield event.plain_result("发生错误，请联系管理员: " + str(e))
             finally:
+                self.is_listening = False
                 event.stop_event()
         except Exception as e:
             yield event.plain_result("发生错误，请联系管理员: " + str(e))
