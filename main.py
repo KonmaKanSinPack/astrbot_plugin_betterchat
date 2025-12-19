@@ -56,6 +56,9 @@ class BetterChat_Plugin(Star):
                 self.is_listening = False
                 # await self.context.send_message(event.unified_msg_origin,message_chain)
                 # yield event.plain_result(f"send msg")
+                message_result = event.make_result()
+                message_result.chain = [Comp.Plain(self.hole_msgs)] # import astrbot.api.message_components as Comp
+                await event.send(message_result) # 发送回复，不能使用 yield
             except Exception as e:
                 yield event.plain_result("发生内部错误，请联系管理员: " + str(e))
             finally:
