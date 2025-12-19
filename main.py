@@ -40,7 +40,7 @@ class BetterChat_Plugin(Star):
                 @session_waiter(timeout=4, record_history_chains=False)
                 async def wait_for_response(controller: SessionController, event: AstrMessageEvent):
                     cur_msg = event.message_str
-                    hole_msgs += f"{cur_msg}\n"
+                    self.hole_msgs += f"{cur_msg}\n"
                     
                     controller.keep(timeout=4, reset_timeout=True)
 
