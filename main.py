@@ -27,7 +27,7 @@ class BetterChat_Plugin(Star):
         logger.info(message_chain)
         yield event.plain_result(f"Hello, {user_name}, 你发了 {message_str}!") # 发送一条纯文本消息
 
-    @filter.event_message_type(filter.EventMessageType.ALL)
+    @filter.event_message_type(filter.EventMessageType.PRIVATE_MESSAGE)
     async def on_all_message(self, event: AstrMessageEvent):
         if self.is_listening:
             logger.info("插件处于监听状态，忽略消息。")
@@ -40,6 +40,7 @@ class BetterChat_Plugin(Star):
         try:
             @session_waiter(timeout=4, record_history_chains=False)
             async def wait_for_response(controller: SessionController, event: AstrMessageEvent):
+                nonlocal hole_msgs
                 cur_msg = event.message_str
                 hole_msgs += f"{cur_msg}\n"
                 
@@ -54,7 +55,7 @@ class BetterChat_Plugin(Star):
                 hole_msgs = ""
                 yield event.plain_result(f"send msg")
             except Exception as e:
-                yield event.plain_result("发生错误，请联系管理员: " + str(e))
+                yield event.plain_result("发生内部错误，请联系管理员: " + str(e))
             finally:
                 self.is_listening = False
                 event.stop_event()
