@@ -17,7 +17,7 @@ class BetterChat_Plugin(Star):
         self.is_listening = False
         self.hole_msgs = ""
         self.iswaitting = False
-        # self._ready_event = asyncio.Event()
+        self._ready_event = asyncio.Event()
 
     async def initialize(self):
         """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
@@ -34,10 +34,10 @@ class BetterChat_Plugin(Star):
 
     @filter.event_message_type(filter.EventMessageType.PRIVATE_MESSAGE)
     async def on_all_message(self, event: AstrMessageEvent):
-        # if self.is_listening:
-        #     logger.info("当前正在监听消息，请稍后再试。")
-        #     return
-        # umo = event.unified_msg_origin
+        if self.is_listening:
+            logger.info("当前正在监听消息，请稍后再试。")
+            return
+        umo = event.unified_msg_origin
         self.is_listening = True
         try:
             @session_waiter(timeout=4, record_history_chains=False)
@@ -52,34 +52,35 @@ class BetterChat_Plugin(Star):
                 logger.info("No more messages received within timeout.")
                 logger.info(f"Collected messages:{self.hole_msgs}")
                 # message_chain = MessageChain().message(self.hole_msgs)
-                # self._ready_event.set()
+                self._ready_event.set()
+                self.is_listening = False
                 # await self.context.send_message(event.unified_msg_origin,message_chain)
                 # yield event.plain_result(f"send msg")
             except Exception as e:
                 yield event.plain_result("发生内部错误，请联系管理员: " + str(e))
             finally:
                 self.is_listening = False
-                event.stop_event()
+                # event.stop_event()
         except Exception as e:
             yield event.plain_result("发生错误，请联系管理员: " + str(e))
 
-    # @filter.on_llm_request()
-    # async def my_hook(self, event: AstrMessageEvent, req: ProviderRequest):
-    #     logger.info("进入llm调用钩子。。。")
-    #     if self.iswaitting:
-    #         logger.info("llm调用处于等待状态，忽略消息。")
-    #         return
+    @filter.on_llm_request()
+    async def my_hook(self, event: AstrMessageEvent, req: ProviderRequest):
+        logger.info("进入llm调用钩子。。。")
+        if self.iswaitting:
+            logger.info("llm调用处于等待状态，忽略消息。")
+            return
         
-    #     self.iswaitting = True
-    #     try:
-    #         logger.info("开始等待。。。")
-    #         await self._ready_event.wait()
-    #         logger.info("等待结束，信息为：" + self.hole_msgs)
-    #         req.prompt = f"{req.prompt}\n[{self.hole_msgs}]"
-    #         self.hole_msgs = ""
-    #         self._ready_event.clear()
-    #     finally:
-    #         self.iswaitting = False
+        self.iswaitting = True
+        try:
+            logger.info("开始等待。。。")
+            await self._ready_event.wait()
+            logger.info("等待结束，信息为：" + self.hole_msgs)
+            req.prompt = f"{req.prompt}\n[{self.hole_msgs}]"
+            self.hole_msgs = ""
+            self._ready_event.clear()
+        finally:
+            self.iswaitting = False
 
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
