@@ -42,14 +42,12 @@ class BetterChat_Plugin(Star):
                     cur_msg = event.message_str
                     self.hole_msgs += f"{cur_msg}\n"
                     controller.keep(timeout=4, reset_timeout=True)
-                    
+
                 try:
                     await wait_for_response(event)
                 except TimeoutError:
                     logger.info("No more messages received within timeout.")
                     logger.info(f"Collected messages:{self.hole_msgs}")
-                    # event.message_str = self.hole_msgs
-                    # self.hole_msgs = ""
                     self._ready_event.set()
                     yield event.plain_result(f"send msg")
                 except Exception as e:
@@ -68,7 +66,9 @@ class BetterChat_Plugin(Star):
         
         self.iswaitting = True
         try:
+            logger.info("开始等待。。。")
             await self._ready_event.wait()
+            logger.info("等待结束，信息为：" + self.hole_msgs)
             req.prompt = f"{req.prompt}\n[{self.hole_msgs}]"
             self.hole_msgs = ""
             self._ready_event.clear()
