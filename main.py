@@ -34,7 +34,7 @@ class BetterChat_Plugin(Star):
         async with self.is_listening:
             logger.info(f"收到私聊消息: {event.message_str}")
         
-            yield event.plain_result(f"收到消息: {event.message_str}")
+            # yield event.plain_result(f"收到消息: {event.message_str}")
             # logger.info(f"event: {event}, request: {req}")
             try:
                 @session_waiter(timeout=4, record_history_chains=False)
