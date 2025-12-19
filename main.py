@@ -7,12 +7,13 @@ from astrbot.core.utils.session_waiter import (
     session_waiter,
     SessionController,
 )
+import asyncio
 
 @register("astrbot_plugin_betterchat", "兔子", "更好的聊天。", "v0.1.0")
 class BetterChat_Plugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-        self.is_listening = False
+        self.is_listening = asyncio.Lock()
         self.hole_msgs = ""
 
     async def initialize(self):
@@ -30,36 +31,34 @@ class BetterChat_Plugin(Star):
 
     @filter.event_message_type(filter.EventMessageType.PRIVATE_MESSAGE)
     async def on_all_message(self, event: AstrMessageEvent):
-        if self.is_listening:
-            logger.info("插件处于监听状态，忽略消息。")
-            return
+        async with self.is_listening:
+            logger.info(f"收到私聊消息: {event.message_str}")
         
-        self.is_listening = True
-        yield event.plain_result(f"收到消息: {event.message_str}")
-        # logger.info(f"event: {event}, request: {req}")
-        try:
-            @session_waiter(timeout=4, record_history_chains=False)
-            async def wait_for_response(controller: SessionController, event: AstrMessageEvent):
-                cur_msg = event.message_str
-                hole_msgs += f"{cur_msg}\n"
-                
-                controller.keep(timeout=4, reset_timeout=True)
-
+            yield event.plain_result(f"收到消息: {event.message_str}")
+            # logger.info(f"event: {event}, request: {req}")
             try:
-                await wait_for_response(event)
-            except TimeoutError:
-                logger.info("No more messages received within timeout.")
-                logger.info(f"Collected messages:\n{self.hole_msgs}")
-                event.message_str = self.hole_msgs
-                self.hole_msgs = ""
-                yield event.plain_result(f"send msg")
+                @session_waiter(timeout=4, record_history_chains=False)
+                async def wait_for_response(controller: SessionController, event: AstrMessageEvent):
+                    cur_msg = event.message_str
+                    hole_msgs += f"{cur_msg}\n"
+                    
+                    controller.keep(timeout=4, reset_timeout=True)
+
+                try:
+                    await wait_for_response(event)
+                except TimeoutError:
+                    logger.info("No more messages received within timeout.")
+                    logger.info(f"Collected messages:\n{self.hole_msgs}")
+                    event.message_str = self.hole_msgs
+                    self.hole_msgs = ""
+                    yield event.plain_result(f"send msg")
+                except Exception as e:
+                    yield event.plain_result("发生内部错误，请联系管理员: " + str(e))
+                finally:
+                    self.is_listening = False
+                    event.stop_event()
             except Exception as e:
-                yield event.plain_result("发生内部错误，请联系管理员: " + str(e))
-            finally:
-                self.is_listening = False
-                event.stop_event()
-        except Exception as e:
-            yield event.plain_result("发生错误，请联系管理员: " + str(e))
+                yield event.plain_result("发生错误，请联系管理员: " + str(e))
 
     # @filter.on_llm_request()
     # async def my_hook(self, event: AstrMessageEvent, req: ProviderRequest):
