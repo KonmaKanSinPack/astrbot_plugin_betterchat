@@ -26,8 +26,8 @@ class BetterChat_Plugin(Star):
         logger.info(message_chain)
         yield event.plain_result(f"Hello, {user_name}, 你发了 {message_str}!") # 发送一条纯文本消息
 
-    @filter.on_llm_request()
-    async def my_hook(self, event: AstrMessageEvent, req: ProviderRequest):
+    @filter.event_message_type(filter.EventMessageType.ALL)
+    async def on_all_message(self, event: AstrMessageEvent):
         # logger.info(f"event: {event}, request: {req}")
         hole_msgs = ""
         try:
@@ -43,7 +43,7 @@ class BetterChat_Plugin(Star):
             except TimeoutError:
                 logger.info("No more messages received within timeout.")
                 logger.info(f"Collected messages:\n{hole_msgs}")
-                req.prompt = f"{req.prompt}\n[{hole_msgs}]"
+                event.message_str = hole_msgs
                 hole_msgs = ""
                 yield event.plain_result(f"send msg")
             except Exception as e:
@@ -52,6 +52,34 @@ class BetterChat_Plugin(Star):
                 event.stop_event()
         except Exception as e:
             yield event.plain_result("发生错误，请联系管理员: " + str(e))
+
+    @filter.on_llm_request()
+    async def my_hook(self, event: AstrMessageEvent, req: ProviderRequest):
+        return 
+        # # logger.info(f"event: {event}, request: {req}")
+        # hole_msgs = ""
+        # try:
+        #     @session_waiter(timeout=4, record_history_chains=False)
+        #     async def wait_for_response(controller: SessionController, event: AstrMessageEvent):
+        #         cur_msg = event.message_str
+        #         hole_msgs += f"{cur_msg}\n"
+                
+        #         controller.keep(timeout=4, reset_timeout=True)
+
+        #     try:
+        #         await wait_for_response(event)
+        #     except TimeoutError:
+        #         logger.info("No more messages received within timeout.")
+        #         logger.info(f"Collected messages:\n{hole_msgs}")
+        #         req.prompt = f"{req.prompt}\n[{hole_msgs}]"
+        #         hole_msgs = ""
+        #         yield event.plain_result(f"send msg")
+        #     except Exception as e:
+        #         yield event.plain_result("发生错误，请联系管理员: " + str(e))
+        #     finally:
+        #         event.stop_event()
+        # except Exception as e:
+        #     yield event.plain_result("发生错误，请联系管理员: " + str(e))
 
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
