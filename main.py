@@ -13,6 +13,7 @@ class BetterChat_Plugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
         self.is_listening = False
+        self.hole_msgs = ""
 
     async def initialize(self):
         """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
@@ -68,7 +69,6 @@ class BetterChat_Plugin(Star):
             logger.info("插件处于监听状态，忽略消息。")
             return
         logger.info(f"收到消息: {event.message_str}")
-        hole_msgs = ""
         try:
             @session_waiter(timeout=4, record_history_chains=False)
             async def wait_for_response(controller: SessionController, event: AstrMessageEvent):
@@ -81,12 +81,12 @@ class BetterChat_Plugin(Star):
                 await wait_for_response(event)
             except TimeoutError:
                 logger.info("No more messages received within timeout.")
-                logger.info(f"Collected messages:\n{hole_msgs}")
-                req.prompt = f"{req.prompt}\n[{hole_msgs}]"
-                hole_msgs = ""
+                logger.info(f"Collected messages:\n{self.hole_msgs}")
+                req.prompt = f"{req.prompt}\n[{self.hole_msgs}]"
+                self.hole_msgs = ""
                 yield event.plain_result(f"send msg")
             except Exception as e:
-                yield event.plain_result("发生错误，请联系管理员: " + str(e))
+                yield event.plain_result("发生内部错误，请联系管理员: " + str(e))
             finally:
                 self.is_listening = False
                 event.stop_event()
