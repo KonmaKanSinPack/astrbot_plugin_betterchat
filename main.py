@@ -17,7 +17,7 @@ class BetterChat_Plugin(Star):
         self.is_listening = False
         self.hole_msgs = ""
         self.iswaitting = False
-        self._ready_event = asyncio.Event()
+        # self._ready_event = asyncio.Event()
 
     async def initialize(self):
         """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
@@ -52,7 +52,7 @@ class BetterChat_Plugin(Star):
                 logger.info("No more messages received within timeout.")
                 logger.info(f"Collected messages:{self.hole_msgs}")
                 # message_chain = MessageChain().message(self.hole_msgs)
-                self._ready_event.set()
+                # self._ready_event.set()
                 # await self.context.send_message(event.unified_msg_origin,message_chain)
                 # yield event.plain_result(f"send msg")
             except Exception as e:
