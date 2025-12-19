@@ -60,6 +60,7 @@ class BetterChat_Plugin(Star):
 
     @filter.on_llm_request()
     async def my_hook(self, event: AstrMessageEvent, req: ProviderRequest):
+        logger.info("进入llm调用钩子。。。")
         if self.iswaitting:
             logger.info("llm调用处于等待状态，忽略消息。")
             return
