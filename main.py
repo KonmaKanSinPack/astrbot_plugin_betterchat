@@ -52,7 +52,7 @@ class BetterChat_Plugin(Star):
                     message_chain = MessageChain().message(self.hole_msgs)
                     self._ready_event.set()
                     await self.context.send_message(event.unified_msg_origin,message_chain)
-                    yield event.plain_result(f"send msg")
+                    # yield event.plain_result(f"send msg")
                 except Exception as e:
                     yield event.plain_result("发生内部错误，请联系管理员: " + str(e))
                 finally:
