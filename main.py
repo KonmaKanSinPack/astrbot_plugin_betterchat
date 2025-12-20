@@ -75,7 +75,7 @@ class BetterChat_Plugin(Star):
             logger.info("开始等待。。。")
             await self._ready_event.wait()
             logger.info("等待结束，信息为：" + self.hole_msgs)
-            req.prompt = f"{req.prompt}\n[{self.hole_msgs}]"
+            # req.prompt = f"{req.prompt}\n[{self.hole_msgs}]"
             self.hole_msgs = ""
             self._ready_event.clear()
         finally:
